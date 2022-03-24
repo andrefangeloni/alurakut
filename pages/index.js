@@ -4,7 +4,7 @@ import { Box } from '../src/components/Box';
 import { MainGrid } from '../src/components/MainGrid';
 import { ProfileRelationsBoxWrapper } from '../src/components/ProfileRelations';
 
-import { api } from '../src/services/api';
+import { githubAPI, datoAPI } from '../src/services/api';
 
 import {
   AlurakutMenu,
@@ -62,21 +62,31 @@ const Home = () => {
   ];
 
   const [followers, setFollowers] = React.useState([]);
-  const [communities, setCommunities] = React.useState([
-    {
-      id: 'xpto',
-      title: 'Default',
-      image: `https://picsum.photos/300?${randomImageId}`,
-    },
-  ]);
+  const [communities, setCommunities] = React.useState([]);
 
   React.useEffect(() => {
     const getFollowers = async () => {
-      const { data } = await api.get(`/users/${githubUser}/followers`);
+      const { data } = await githubAPI.get(`/users/${githubUser}/followers`);
       setFollowers(data);
     };
 
+    const getCommunities = async () => {
+      const { data } = await datoAPI.post('/', {
+        query: `{
+          allCommunities {
+            id
+            title
+            imageUrl
+            creatorSlug
+          }
+        }`,
+      });
+
+      setCommunities(data.data.allCommunities.sort(() => Math.random() - 0.5));
+    };
+
     getFollowers();
+    getCommunities();
   }, []);
 
   const handleSubmitCommunity = (event) => {
@@ -168,8 +178,13 @@ const Home = () => {
             <ul>
               {communities.slice(0, 6).map((community) => (
                 <li key={community.id}>
-                  <a href={`/users/${community.title}`}>
-                    <img src={community.image} alt="Community Image" />
+                  <a href={`/communities/${community.id}`}>
+                    <img
+                      alt="Community Image"
+                      src={community.imageUrl}
+                      style={{ width: 102, height: 88, minHeight: '100%' }}
+                      
+                    />
                     <span>{community.title}</span>
                   </a>
                 </li>
