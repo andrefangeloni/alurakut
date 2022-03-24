@@ -4,6 +4,8 @@ import { Box } from '../src/components/Box';
 import { MainGrid } from '../src/components/MainGrid';
 import { ProfileRelationsBoxWrapper } from '../src/components/ProfileRelations';
 
+import { api } from '../src/services/api';
+
 import {
   AlurakutMenu,
   OrkutNostalgicIconSet,
@@ -28,14 +30,28 @@ const ProfileSidebar = ({ githubUser }) => (
   </Box>
 );
 
-const Home = () => {
-  const [communities, setCommunities] = React.useState([{
-    id: 'aksldnkladna',
-    title: 'Teste',
-    image: 'https://picsum.photos/300?123',
-  }]);
+const ProfileRelationsBox = ({ title, items }) => (
+  <ProfileRelationsBoxWrapper>
+    <h2 className="smallTitle">{`${title} (${items.length})`}</h2>
 
+    {/* <ul>
+      {items.map((item) => (
+        <li key={item.id}>
+          <a href={`/users/${item.title}`}>
+            <img src={item.image} />
+            <span>{item.title}</span>
+          </a>
+        </li>
+      ))}
+    </ul> */}
+  </ProfileRelationsBoxWrapper>
+);
+
+const Home = () => {
   const githubUser = 'andrefangeloni';
+
+  const randomImageId = Math.floor(Math.random() * 1000);
+
   const friends = [
     'omariosouto',
     'diego3g',
@@ -45,18 +61,37 @@ const Home = () => {
     'felipefialho',
   ];
 
+  const [followers, setFollowers] = React.useState([]);
+  const [communities, setCommunities] = React.useState([
+    {
+      id: 'xpto',
+      title: 'Default',
+      image: `https://picsum.photos/300?${randomImageId}`,
+    },
+  ]);
+
+  React.useEffect(() => {
+    const getFollowers = async () => {
+      const { data } = await api.get(`/users/${githubUser}/followers`);
+      setFollowers(data);
+    };
+
+    getFollowers();
+  }, []);
+
   const handleSubmitCommunity = (event) => {
     event.preventDefault();
 
-    const formData = new FormData();
+    const formData = new FormData(event.target);
 
     const community = {
       id: new Date().toISOString(),
       title: formData.get('title'),
-      image: formData.get('image'),
+      image:
+        formData.get('image') || `https://picsum.photos/300?${randomImageId}`,
     };
 
-    setCommunities([...communities, community]);
+    setCommunities([community, ...communities]);
     event.target.reset();
   };
 
@@ -97,10 +132,8 @@ const Home = () => {
                   placeholder="Coloque uma URL para usarmos de capa"
                 />
               </div>
-              
-              <button type="submit">
-                Criar comunidade
-              </button>
+
+              <button type="submit">Criar comunidade</button>
             </form>
           </Box>
         </div>
@@ -116,7 +149,10 @@ const Home = () => {
               {friends.map((friend) => (
                 <li key={friend}>
                   <a href={`/users/${friend}`}>
-                    <img src={`https://github.com/${friend}.png`} />
+                    <img
+                      src={`https://github.com/${friend}.png`}
+                      alt="Github avatar"
+                    />
                     <span>{friend}</span>
                   </a>
                 </li>
@@ -130,16 +166,18 @@ const Home = () => {
             </h2>
 
             <ul>
-              {communities.map((community) => (
+              {communities.slice(0, 6).map((community) => (
                 <li key={community.id}>
                   <a href={`/users/${community.title}`}>
-                    <img src={community.image} />
+                    <img src={community.image} alt="Community Image" />
                     <span>{community.title}</span>
                   </a>
                 </li>
               ))}
             </ul>
           </ProfileRelationsBoxWrapper>
+
+          <ProfileRelationsBox title="Seguidores" items={followers} />
         </div>
       </MainGrid>
     </>
