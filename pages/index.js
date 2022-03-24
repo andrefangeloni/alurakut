@@ -4,7 +4,7 @@ import { Box } from '../src/components/Box';
 import { MainGrid } from '../src/components/MainGrid';
 import { ProfileRelationsBoxWrapper } from '../src/components/ProfileRelations';
 
-import { githubAPI, datoAPI } from '../src/services/api';
+import { api, githubAPI, datoAPI } from '../src/services/api';
 
 import {
   AlurakutMenu,
@@ -62,6 +62,7 @@ const Home = () => {
   ];
 
   const [followers, setFollowers] = React.useState([]);
+  const [isLoading, setIsLoading] = React.useState(false);
   const [communities, setCommunities] = React.useState([]);
 
   React.useEffect(() => {
@@ -82,27 +83,42 @@ const Home = () => {
         }`,
       });
 
-      setCommunities(data.data.allCommunities.sort(() => Math.random() - 0.5));
+      const shuffle = data.data.allCommunities.sort(() => Math.random() - 0.5);
+      setCommunities(shuffle);
     };
 
     getFollowers();
     getCommunities();
   }, []);
 
-  const handleSubmitCommunity = (event) => {
+  const handleSubmitCommunity = async (event) => {
     event.preventDefault();
 
-    const formData = new FormData(event.target);
+    try {
+      setIsLoading(true);
 
-    const community = {
-      id: new Date().toISOString(),
-      title: formData.get('title'),
-      image:
-        formData.get('image') || `https://picsum.photos/300?${randomImageId}`,
-    };
+      const formData = new FormData(event.target);
 
-    setCommunities([community, ...communities]);
-    event.target.reset();
+      const community = {
+        title: formData.get('title'),
+        imageUrl:
+          formData.get('image') || `https://picsum.photos/300?${randomImageId}`,
+        creatorSlug: githubUser,
+      };
+
+      if (!community.title) {
+        throw new Error('Community name is required');
+      }
+
+      const { data } = await api.post('/communities', community);
+
+      setCommunities([data, ...communities]);
+      event.target.reset();
+    } catch (err) {
+     alert(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -122,15 +138,15 @@ const Home = () => {
           </Box>
 
           <Box>
-            <h2 className="subTitle">O que você deseja fazer?</h2>
+            <h2 className="subTitle">Criar comunidade</h2>
 
             <form onSubmit={handleSubmitCommunity}>
               <div>
                 <input
                   type="text"
                   name="title"
-                  aria-label="Qual vai ser o nome da sua comunidade?"
-                  placeholder="Qual vai ser o nome da sua comunidade?"
+                  aria-label="Nome"
+                  placeholder="Nome"
                 />
               </div>
 
@@ -138,12 +154,14 @@ const Home = () => {
                 <input
                   type="text"
                   name="image"
-                  aria-label="Coloque uma URL para usarmos de capa"
-                  placeholder="Coloque uma URL para usarmos de capa"
+                  aria-label="Imagem URL"
+                  placeholder="Imagem URL"
                 />
               </div>
 
-              <button type="submit">Criar comunidade</button>
+              <button type="submit" disabled={isLoading}>
+                {isLoading ? 'Carregando...' : 'Salvar'}
+              </button>
             </form>
           </Box>
         </div>
@@ -183,7 +201,6 @@ const Home = () => {
                       alt="Community Image"
                       src={community.imageUrl}
                       style={{ width: 102, height: 88, minHeight: '100%' }}
-                      
                     />
                     <span>{community.title}</span>
                   </a>
