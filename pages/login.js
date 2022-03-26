@@ -1,4 +1,6 @@
 import React from 'react';
+
+import Head from 'next/head'
 import { useRouter } from 'next/router';
 
 import nookies from 'nookies';
@@ -39,6 +41,10 @@ const Login = () => {
         justifyContent: 'center',
       }}
     >
+      <Head>
+        <title>Alurakut</title>
+      </Head>
+
       <div className="loginScreen">
         <section className="logoArea">
           <img src="https://alurakut.vercel.app/logo.svg" />

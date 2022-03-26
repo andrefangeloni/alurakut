@@ -1,5 +1,7 @@
 import React from 'react';
 
+import Head from 'next/head'
+
 import nookies from 'nookies';
 import jwt from 'jsonwebtoken';
 import { toast } from 'react-toastify';
@@ -34,36 +36,28 @@ const ProfileSidebar = ({ githubUser, onLogout }) => (
   </Box>
 );
 
-const ProfileRelationsBox = ({ title, items, user }) => (
+const ProfileRelationsBox = ({ title, items, quantity }) => (
   <ProfileRelationsBoxWrapper>
-    <h2 className="smallTitle">{`${title} (${user.followers})`}</h2>
+    <h2 className="smallTitle">{`${title} (${quantity})`}</h2>
 
-    {/* <ul>
-      {items.map((item) => (
+    <ul>
+      {items.slice(0, 6).map((item) => (
         <li key={item.id}>
-          <a href={`/users/${item.title}`}>
-            <img src={item.image} />
-            <span>{item.title}</span>
+          <a href={`https://github.com/${item.login}`} target="_blank">
+            <img src={`https://github.com/${item.login}.png`} />
+            <span>{item.login}</span>
           </a>
         </li>
       ))}
-    </ul> */}
+    </ul>
   </ProfileRelationsBoxWrapper>
 );
 
 const Home = ({ githubUser }) => {
   const randomImageId = Math.floor(Math.random() * 1000);
 
-  const friends = [
-    'omariosouto',
-    'diego3g',
-    'rafaballerini',
-    'danielbcarvalho',
-    'peas',
-    'felipefialho',
-  ];
-
   const [user, setUser] = React.useState({});
+  const [following, setFollowing] = React.useState([]);
   const [followers, setFollowers] = React.useState([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [communities, setCommunities] = React.useState([]);
@@ -74,9 +68,18 @@ const Home = ({ githubUser }) => {
       setUser(data);
     };
 
+    const getFollowing = async () => {
+      const { data } = await githubAPI.get(`/users/${githubUser}/following`);
+
+      const shuffle = data.sort(() => Math.random() - 0.5);
+      setFollowing(shuffle);
+    };
+
     const getFollowers = async () => {
       const { data } = await githubAPI.get(`/users/${githubUser}/followers`);
-      setFollowers(data);
+
+      const shuffle = data.sort(() => Math.random() - 0.5);
+      setFollowers(shuffle);
     };
 
     const getCommunities = async () => {
@@ -96,6 +99,7 @@ const Home = ({ githubUser }) => {
     };
 
     getUser();
+    getFollowing();
     getFollowers();
     getCommunities();
   }, []);
@@ -138,6 +142,10 @@ const Home = ({ githubUser }) => {
 
   return (
     <>
+      <Head>
+        <title>Alurakut</title>
+      </Head>
+
       <AlurakutMenu githubUser={githubUser} onLogout={onLogout} />
 
       <MainGrid>
@@ -193,28 +201,16 @@ const Home = ({ githubUser }) => {
           className="profileRelationsArea"
           style={{ gridArea: 'profileRelationsArea' }}
         >
-          <ProfileRelationsBoxWrapper>
-            <h2 className="smallTitle">{`Seguindo (${friends.length})`}</h2>
-
-            <ul>
-              {friends.map((friend) => (
-                <li key={friend}>
-                  <a href={`https://github.com/${friend}`} target="_blank">
-                    <img
-                      src={`https://github.com/${friend}.png`}
-                      alt="Github avatar"
-                    />
-                    <span>{friend}</span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </ProfileRelationsBoxWrapper>
+          <ProfileRelationsBox
+            title="Seguindo"
+            items={following}
+            quantity={user.following}
+          />
 
           <ProfileRelationsBox
             title="Seguidores"
             items={followers}
-            user={user}
+            quantity={user.followers}
           />
 
           <ProfileRelationsBoxWrapper>
