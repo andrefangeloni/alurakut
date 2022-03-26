@@ -1,5 +1,9 @@
 import React from 'react';
 
+import nookies from 'nookies';
+import jwt from 'jsonwebtoken';
+import { toast } from 'react-toastify';
+
 import { Box } from '../src/components/Box';
 import { MainGrid } from '../src/components/MainGrid';
 import { ProfileRelationsBoxWrapper } from '../src/components/ProfileRelations';
@@ -12,7 +16,7 @@ import {
   AlurakutProfileSidebarMenuDefault,
 } from '../src/lib/AlurakutCommons';
 
-const ProfileSidebar = ({ githubUser }) => (
+const ProfileSidebar = ({ githubUser, onLogout }) => (
   <Box as="aside">
     <img
       alt="Profile"
@@ -26,13 +30,13 @@ const ProfileSidebar = ({ githubUser }) => (
     </a>
     <hr />
 
-    <AlurakutProfileSidebarMenuDefault />
+    <AlurakutProfileSidebarMenuDefault onLogout={onLogout} />
   </Box>
 );
 
-const ProfileRelationsBox = ({ title, items }) => (
+const ProfileRelationsBox = ({ title, items, user }) => (
   <ProfileRelationsBoxWrapper>
-    <h2 className="smallTitle">{`${title} (${items.length})`}</h2>
+    <h2 className="smallTitle">{`${title} (${user.followers})`}</h2>
 
     {/* <ul>
       {items.map((item) => (
@@ -47,9 +51,7 @@ const ProfileRelationsBox = ({ title, items }) => (
   </ProfileRelationsBoxWrapper>
 );
 
-const Home = () => {
-  const githubUser = 'andrefangeloni';
-
+const Home = ({ githubUser }) => {
   const randomImageId = Math.floor(Math.random() * 1000);
 
   const friends = [
@@ -61,11 +63,17 @@ const Home = () => {
     'felipefialho',
   ];
 
+  const [user, setUser] = React.useState({});
   const [followers, setFollowers] = React.useState([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [communities, setCommunities] = React.useState([]);
 
   React.useEffect(() => {
+    const getUser = async () => {
+      const { data } = await githubAPI.get(`/users/${githubUser}`);
+      setUser(data);
+    };
+
     const getFollowers = async () => {
       const { data } = await githubAPI.get(`/users/${githubUser}/followers`);
       setFollowers(data);
@@ -87,6 +95,7 @@ const Home = () => {
       setCommunities(shuffle);
     };
 
+    getUser();
     getFollowers();
     getCommunities();
   }, []);
@@ -107,7 +116,7 @@ const Home = () => {
       };
 
       if (!community.title) {
-        throw new Error('Community name is required');
+        throw new Error('Nome da comunidade é obrigatório');
       }
 
       const { data } = await api.post('/communities', community);
@@ -115,26 +124,40 @@ const Home = () => {
       setCommunities([data, ...communities]);
       event.target.reset();
     } catch (err) {
-     alert(err.message);
+      toast.error(err.message);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const onLogout = () => {
+    nookies.set(null, 'Alurakut_userToken', '', {
+      path: '/',
+    });
+  };
+
   return (
     <>
-      <AlurakutMenu githubUser={githubUser} />
+      <AlurakutMenu githubUser={githubUser} onLogout={onLogout} />
 
       <MainGrid>
         <div className="profileArea" style={{ gridArea: 'profileArea' }}>
-          <ProfileSidebar githubUser={githubUser} />
+          <ProfileSidebar githubUser={githubUser} onLogout={onLogout} />
         </div>
 
         <div className="welcomeArea" style={{ gridArea: 'welcomeArea' }}>
           <Box>
-            <h1 className="title">Bem vindo</h1>
+            <h1 className="title">{`Bem vindo, ${user.name}`}</h1>
 
-            <OrkutNostalgicIconSet />
+            <OrkutNostalgicIconSet
+              recados={26}
+              fotos={12}
+              videos={4}
+              fas={user.followers}
+              confiavel={3}
+              legal={2}
+              sexy={1}
+            />
           </Box>
 
           <Box>
@@ -171,12 +194,12 @@ const Home = () => {
           style={{ gridArea: 'profileRelationsArea' }}
         >
           <ProfileRelationsBoxWrapper>
-            <h2 className="smallTitle">{`Amigos (${friends.length})`}</h2>
+            <h2 className="smallTitle">{`Seguindo (${friends.length})`}</h2>
 
             <ul>
               {friends.map((friend) => (
                 <li key={friend}>
-                  <a href={`/users/${friend}`}>
+                  <a href={`https://github.com/${friend}`} target="_blank">
                     <img
                       src={`https://github.com/${friend}.png`}
                       alt="Github avatar"
@@ -188,6 +211,12 @@ const Home = () => {
             </ul>
           </ProfileRelationsBoxWrapper>
 
+          <ProfileRelationsBox
+            title="Seguidores"
+            items={followers}
+            user={user}
+          />
+
           <ProfileRelationsBoxWrapper>
             <h2 className="smallTitle">
               {`Comunidades (${communities.length})`}
@@ -196,7 +225,7 @@ const Home = () => {
             <ul>
               {communities.slice(0, 6).map((community) => (
                 <li key={community.id}>
-                  <a href={`/communities/${community.id}`}>
+                  <a href="">
                     <img
                       alt="Community Image"
                       src={community.imageUrl}
@@ -208,12 +237,31 @@ const Home = () => {
               ))}
             </ul>
           </ProfileRelationsBoxWrapper>
-
-          <ProfileRelationsBox title="Seguidores" items={followers} />
         </div>
       </MainGrid>
     </>
   );
+};
+
+export const getServerSideProps = async (ctx) => {
+  const { Alurakut_userToken } = nookies.get(ctx);
+
+  if (!Alurakut_userToken) {
+    return {
+      redirect: {
+        destination: '/login',
+        permanent: false,
+      },
+    };
+  }
+
+  const { githubUser } = jwt.decode(Alurakut_userToken);
+
+  return {
+    props: {
+      githubUser,
+    },
+  };
 };
 
 export default Home;

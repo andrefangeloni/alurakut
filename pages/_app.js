@@ -1,6 +1,9 @@
+import { ToastContainer } from 'react-toastify';
 import { createGlobalStyle, ThemeProvider } from 'styled-components';
 
 import { AlurakutStyles } from '../src/lib/AlurakutCommons';
+
+import 'react-toastify/dist/ReactToastify.css';
 
 const GlobalStyle = createGlobalStyle`
   * {
@@ -38,6 +41,7 @@ const theme = {
 const App = ({ Component, pageProps }) => (
   <>
     <GlobalStyle />
+    <ToastContainer />
     <ThemeProvider theme={theme}>
       <Component {...pageProps} />
     </ThemeProvider>
