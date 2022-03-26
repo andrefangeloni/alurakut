@@ -1,7 +1,8 @@
 # Alurakut
 
 ## Prerequisite
-- Generate your API Key on [Dato CMS](https://www.datocms.com/).
+- Generate your API Key on [Dato CMS](https://www.datocms.com/)
+- Paste your API Key on `.env.example` and rename to `.env.local`
 
 ## Screenshots
 
